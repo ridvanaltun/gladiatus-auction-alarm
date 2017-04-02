@@ -1,0 +1,31 @@
+{
+  "name": "Gladiatus Auction Helper",
+  "version": "1.1",
+  "description": "It's for gladiatus auction pages.",
+  "author": "Ridvan Altun",
+  "update_url": "http://p.esy.es/updates.xml",
+  "homepage_url": "https://t-army.github.io/",
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "page_action" :
+  {
+    "default_icon" : "icon2.png",
+    "default_title" : "Auction Helper"
+  },
+  "permissions" : [
+    "declarativeContent",
+    "tabs"
+  ],
+  "icons" : {
+    //"19" : "icon1.png",
+    "48" : "icon48.png",
+    "128" : "icon128.png"
+  },
+  "web_accessible_resources": [
+    "img/*",
+    "scripts/*"
+  ],
+  "manifest_version": 2
+}
