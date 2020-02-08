@@ -1,88 +1,119 @@
-// Copyright (c) 2011 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+const ENUMS = {
+	'PASSIVE': 1,
+	'ACTIVE': 2,
+};
+
+const auctionUrl = 'gladiatus.gameforge.com/game/index.php?mod=auction&sh=';
+const mersenerAuctionUrl = 'gladiatus.gameforge.com/game/index.php?mod=auction&ttype=3&sh=';
+
+let tabStatus = {};
+
+const isExtActive = tabId => tabStatus[tabId] !== ENUMS.PASSIVE;
+
+const isAunctionTab = url => url.indexOf(auctionUrl) !== -1;
+
+const isMersenerAunctionTab = url => url.indexOf(mersenerAuctionUrl) !== -1;
+
+// allowed urls to interact the extension
+const declarePageContent = () => {
+		 chrome.declarativeContent.onPageChanged.addRules([
+			 {
+				 conditions: [
+						new chrome.declarativeContent.PageStateMatcher({ // for normal auction page
+							pageUrl: { urlContains: 'gladiatus.gameforge.com/game/index.php?mod=auction&sh=' },
+						}),
+						new chrome.declarativeContent.PageStateMatcher({ // for mersener auction page
+							pageUrl: { urlContains: 'gladiatus.gameforge.com/game/index.php?mod=auction&ttype=3&sh=' },
+						})
+					],
+				 // And shows the extension's page action.
+				 actions: [ new chrome.declarativeContent.ShowPageAction() ]
+			 }
+		 ]);
+};
 
 // When the extension is installed or upgraded ...
-chrome.runtime.onInstalled.addListener(function() {
-   // Replace all rules ...
-   chrome.declarativeContent.onPageChanged.removeRules(undefined, function() {
-     // With a new rule ...
-     chrome.declarativeContent.onPageChanged.addRules([
-       {
-         // That fires when a page's URL contains a 'g' ...
-         conditions: [
-           new chrome.declarativeContent.PageStateMatcher({ // for normal auction page
-             //pageUrl: { urlContains: 'g' },
-             pageUrl: { urlContains: 'gladiatus.gameforge.com/game/index.php?mod=auction&sh=' },
-           }),
-           new chrome.declarativeContent.PageStateMatcher({ // for mersener auction page
-             //pageUrl: { urlContains: 'g' },
-             pageUrl: { urlContains: 'gladiatus.gameforge.com/game/index.php?mod=auction&ttype=3&sh=' },
-           }),
-           new chrome.declarativeContent.PageStateMatcher({ // for messages page
-             //pageUrl: { urlContains: 'g' },
-             pageUrl: { urlContains: 'gladiatus.gameforge.com/game/index.php?mod=messages&submod=messageShow&folder' },
-           })
-          ],
-         // And shows the extension's page action.
-         actions: [ new chrome.declarativeContent.ShowPageAction() ]
-       }
-     ]);
-   });
- });
-
-chrome.tabs.onUpdated.addListener(function(id, info, tab){
-    
-    if(tab.url.indexOf("gladiatus.gameforge.com/game/index.php?mod=messages&submod=messageShow&folder") != -1){
-       //chrome.tabs.executeScript(tab.id, {"file": "scripts/auction_failure.js"});
-       console.log("injected");
-    }
+chrome.runtime.onInstalled.addListener(() => {
+	// Replace all rules ...
+	chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+		// With a new rule ...
+		declarePageContent();
+	});
 });
 
-var lastTabId = 0;
-var tab_clicks = {};
+const injectAuctionFile = tabId => {
+	chrome.tabs.executeScript(tabId, {"file": "scripts/auction_alarm.js"});
+};
 
-/*
-chrome.tabs.onSelectionChanged.addListener(function(tabId) {
-  lastTabId = tabId;
-  chrome.pageAction.show(lastTabId);
-});*/
+const handleExt = (tabId, status, inject = false) => {
+	if (status === ENUMS.PASSIVE) {
+		chrome.pageAction.show(tabId);
+		chrome.pageAction.setTitle({title: "PASSIVE", tabId: tabId});
+		chrome.pageAction.setIcon({
+			path: "passive.png",
+			tabId: tabId,
+		});
+	} else {
+		chrome.pageAction.hide(tabId);
+		chrome.pageAction.setTitle({title: "ACTIVE", tabId: tabId});
+		chrome.pageAction.setIcon({
+			path: "active.png",
+			tabId: tabId,
+		});
+		if (inject) injectAuctionFile(tabId);
+	}
+};
 
-/*
-chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-  lastTabId = tabs[0].id;
-  chrome.pageAction.show(lastTabId);
-});*/
+const toggleExtStatus = tab => {
+	var status = tabStatus[tab.id] || ENUMS.ACTIVE;
 
-// Called when the user clicks on the page action.
-chrome.pageAction.onClicked.addListener(function(tab) {
-  var clicks = tab_clicks[tab.id] || 0;
-  chrome.pageAction.setIcon({path: "icon" + (clicks + 1) + ".png",
-                             tabId: tab.id});
-  if (clicks % 2) {
-    chrome.pageAction.show(tab.id);
-  } else {
-    chrome.pageAction.hide(tab.id);
-    setTimeout(function() { chrome.pageAction.show(tab.id); }, 200);
-  }
-  chrome.pageAction.setTitle({title: "click:" + clicks, tabId: tab.id});
+	if (status === ENUMS.PASSIVE) status = ENUMS.ACTIVE;
+	else status = ENUMS.PASSIVE;
 
-  // We only have 2 icons, but cycle through 3 icons to test the
-  // out-of-bounds index bug.
-  clicks++;
-  if (clicks > 1)
-    clicks = 0;
-  tab_clicks[tab.id] = clicks;
+	handleExt(tab.id, status, true);
+
+	tabStatus[tab.id] = status;
+};
+
+const isTabCorrect = url => {
+	return isAunctionTab(url) || isMersenerAunctionTab(url);
+};
+
+// call when ext on clicked
+chrome.pageAction.onClicked.addListener(tab => {
+	// toogle extention status
+	if (isTabCorrect(tab.url)) {
+		toggleExtStatus(tab);
+	}
 });
 
-/*
-chrome.tabs.onUpdated.addListener(function(id, info, tab){
-    if (tab.status !== "complete"){
-        return;
-    }
-    if(tab.url.indexOf("gladiatus.gameforge.com/game/index.php?mod=auction&sh=") != -1){
-       //chrome.tabs.executeScript(tab.id, {"file": "scripts/auction_normal_alarm.js"});
-       console.log("injected");
-    }
-});*/
+// call when any page on completed
+chrome.webNavigation.onCompleted.addListener((details) => {
+	const {tabId, url} = details;
 
+	if (isExtActive(tabId)) {
+		handleExt(tabId, ENUMS.ACTIVE);
+	} else {
+		handleExt(tabId, ENUMS.PASSIVE);
+	}
+
+	if (isTabCorrect(url) && isExtActive(tabId)) {
+		injectAuctionFile(tabId);
+	} else {
+		handleExt(tabId, ENUMS.PASSIVE);
+	}
+});
+
+chrome.management.get(chrome.runtime.id, details => {
+	if (details.installType === 'development') {
+		// refresh mechanism for development
+		chrome.commands.onCommand.addListener((shortcut) => {
+			// press ctrl + m to refresh extention
+			console.log('lets reload');
+			console.log(shortcut);
+			if(shortcut.includes("+M")) {
+				chrome.runtime.reload();
+			}
+		});
+	}
+});

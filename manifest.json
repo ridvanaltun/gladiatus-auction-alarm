@@ -1,27 +1,39 @@
 {
-  "name": "Gladiatus Auction Helper",
-  "version": "1.1",
-  "description": "It's for gladiatus auction pages.",
+  "name": "Gladiatus Auction Alarm",
+  "version": "1.0.0",
+  "description": "Set an alarm for Gladiatus Auction.",
   "author": "Ridvan Altun",
-  "update_url": "http://p.esy.es/updates.xml",
-  "homepage_url": "https://t-army.github.io/",
+  "update_url": "https://raw.githubusercontent.com/ridvanaltun/gladiatus-auction-alarm/master/updates.xml",
+  "homepage_url": "https://github.com/ridvanaltun/gladiatus-auction-alarm/",
   "background": {
     "scripts": ["background.js"],
     "persistent": false
   },
   "page_action" :
   {
-    "default_icon" : "icon2.png",
-    "default_title" : "Auction Helper"
+    "default_icon" : "passive.png",
+    "default_title" : "PASSIVE"
   },
   "permissions" : [
     "declarativeContent",
-    "tabs"
+    "tabs",
+    "webNavigation",
+    "management",
+    "http://*.gladiatus.gameforge.com/*",
+    "https://*.gladiatus.gameforge.com/*"
   ],
   "icons" : {
-    //"19" : "icon1.png",
     "48" : "icon48.png",
     "128" : "icon128.png"
+  },
+  "commands": {
+    "Ctrl+M": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "mac": "Command+M"
+      },
+      "description": "Ctrl+M."
+    }
   },
   "web_accessible_resources": [
     "img/*",
